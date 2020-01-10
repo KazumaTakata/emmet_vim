@@ -22,7 +22,7 @@ fun! GetTokens(input)
 endfun
 
 fun! GetToken(input)
-   let regex_tag = '\v[a-zA-Z_]+'
+   let regex_tag = '\v[a-zA-Z_ 0-9]+'
    let regex_lt = '\v\>'
    let regex_plus = '\v\+'
    let regex_up = '\v\^'
@@ -37,7 +37,7 @@ fun! GetToken(input)
 
 
 
-   let regex = '\v[a-zA-Z_]+|\>|\+|\^|\*|\d+|\(|\)|\#|\.|\{|\}' 
+   let regex = '\v[a-zA-Z_ 0-9]+|\>|\+|\^|\*|\d+|\(|\)|\#|\.|\{|\}' 
    let result =  matchstrpos(a:input, regex) 
    if matchstrpos(result[0], regex_tag)[1] != -1 
        return {"type" :"tag","value" :result[0],"start": result[1], "end": result[2]}
@@ -94,8 +94,10 @@ fun! Parser(tokens)
         elseif tokens[0].type == "child"
                       
             let tokens = tokens[1:]
-            call ParseTag(tokens, stack)
-"
+            if tokens[0].type == "tag"
+                call ParseTag(tokens, stack)
+            endif
+
 
         elseif tokens[0].type == "plus"
 
@@ -212,11 +214,21 @@ fun! ParseTag(tokens, stack)
 endfun
 
 fun! GenHTML(tree)
-    
+   let html = ""
+   for subtree in a:tree
+       let html = html . GenTag(subtree, 0)
+   endfor 
+   
+   return html
     
 
 endfun
 
+fun! Compile(input)
+   let tokens = GetTokens(a:input) 
+   let tree = Parser(tokens)
+   return GenHTML(tree.tree.children) 
+endfun
     
 fun! GenTag(tree, depth)
     let html = "" 
@@ -225,12 +237,24 @@ fun! GenTag(tree, depth)
 
 
     if a:tree.type == "text" 
-        let html = a:tree.value . "\n"
+        let depth_index = 0
+        
+        let indent = "" 
+        while a:depth > depth_index 
+            let indent = indent . " " 
+            let depth_index += 1
+        endwhile
+         
+        let html = indent . a:tree.value . "\n"
+    elseif a:tree.type == "tree"
+        for child  in a:tree.value.children
+             let html =  html . GenTag(child, a:depth) 
+        endfor
     else
 
-    let open_tag = "<" . tag_type . " "     
+    let open_tag = "<" . tag_type      
 
-    if has_key(a:tree, "class") && len(a:tree.id) > 0
+    if has_key(a:tree, "id") && len(a:tree.id) > 0
         let id_attr = "id=\""
         
         for id in  a:tree.id 
@@ -238,7 +262,7 @@ fun! GenTag(tree, depth)
         endfor
          
         let id_attr = id_attr .  "\""
-        let open_tag = open_tag . id_attr 
+        let open_tag = open_tag . " " .id_attr 
         
     endif
      
@@ -259,7 +283,13 @@ fun! GenTag(tree, depth)
 
     let child_html = ""
     for child in a:tree.children 
-       let child_html =  child_html . GenTag(child, a:depth + 4) 
+       if child.type == "tree"
+           for grand_child  in child.value.children
+                let child_html =  child_html . GenTag(grand_child, a:depth + 4) 
+           endfor
+       else
+           let child_html =  child_html . GenTag(child, a:depth + 4) 
+       endif
     endfor
  
     let close_tag = "</" . tag_type . ">"
