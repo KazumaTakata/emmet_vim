@@ -156,7 +156,7 @@ fun! ParseTag(tokens, stack)
     if len(a:tokens) > 1
         if a:tokens[1].type == "mul"
             if a:tokens[2].type == "num"
-                let a:tokens[0].count = tokens[2].value
+                let a:tokens[0].count = a:tokens[2].value
                 "let a:tokens = a:tokens[2:]
                 call remove(a:tokens, 0)
                 call remove(a:tokens, 0)
@@ -194,6 +194,43 @@ fun! GenHTML(tree)
 
 endfun
 
+    
+fun! GenTag(tree, depth)
+    let html = "" 
+    let tag_type = a:tree.value
+    
+    let open_tag = "<" . tag_type . ">"
+    
+    let child_html = ""
+    for child in a:tree.children 
+       let child_html =  child_html . GenTag(child, a:depth + 4) 
+    endfor
+ 
+    let close_tag = "</" . tag_type . ">"
+   
+    let indent = ""
+    
+    let depth_index = 0
+    while a:depth > depth_index 
+        let indent = indent . " " 
+        let depth_index += 1
+    endwhile
+     
+    let html = indent . open_tag . "\n" .  child_html . indent .  close_tag . "\n" 
+
+    if has_key(a:tree, "count")
+            
+        let index = 1 
+        while a:tree.count > index
+            let html = html . html
+            let index = index + 1
+        endwhile
+
+    endif
+
+    return html 
+
+endfun
 
 
 
