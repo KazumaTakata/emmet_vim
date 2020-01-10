@@ -85,36 +85,6 @@ fun! Parser(tokens)
     while len(tokens) > 0
        if tokens[0].type == "tag"
             call ParseTag(tokens, stack)
-"            let cur_token = tokens[0] 
-            "let cur_token.id = []
-            "let cur_token.class = []
-            "let cur_token.children = []
-
-            "if len(tokens) > 1
-                "if tokens[1].type == "mul"
-                    "if tokens[2].type == "num"
-                        "let tokens[0].count = tokens[2].value
-                        "let tokens = tokens[2:]
-                    "endif
-                "elseif tokens[1].type == "sharp"
-                    "call add(tokens[0].class,tokens[2].value)
-                    "let tokens = tokens[2:]
-                
-                "elseif tokens[1].type == "dot"
-                    "call add(tokens[0].id,tokens[2].value)
-                    "let tokens = tokens[2:]
-                "endif
- 
-
-            "endif
-            
-            "call add(stack[-1].children, cur_token) 
-
-            "call add(stack, cur_token )
-
-            "let tokens = tokens[1:]
-
-
         elseif tokens[0].type == "child"
                       
             let tokens = tokens[1:]
@@ -125,18 +95,43 @@ fun! Parser(tokens)
 
             let stack = stack[:-2] 
             let tokens = tokens[1:]
-            call ParseTag(tokens, stack)
+            if tokens[0].type == "tag"
+                call ParseTag(tokens, stack)
+            endif
 "
         
         elseif tokens[0].type == "up"
-            let depth = depth - 1 
+            
             let tokens = tokens[1:]
+            let counter = 1
+            
+            while tokens[0].type == "up"
+                 
+                let tokens = tokens[1:]
+                let counter = counter + 1 
+    
+            endwhile 
+            
+            let index = -counter - 2 
+            if len(stack) < abs(inde) 
+                let stack = stack[:index]
+            elseif
+                let stack = stack[:0]
+            endif 
+            
+            call ParseTag(tokens, stack)
+            
+
 
         elseif tokens[0].type == "lparen"
             let tree_and_tokens = Parser(tokens[1:])
-            let node = { "type" : "tree", "value": tree_and_tokens.tree } 
+            let node = { "type" : "tree", "value": tree_and_tokens.tree, "children":[] } 
             call add(tree[depth], node)
             let tokens = tree_and_tokens.tokens
+            
+            call add(stack[-1].children, node) 
+
+            call add(stack, node)
 
         elseif tokens[0].type == "rparen"
             let tokens = tokens[1:]
@@ -190,10 +185,6 @@ fun! ParseTag(tokens, stack)
 
     call add(a:stack, cur_token )
     call remove(a:tokens, 0)
-    "let tokens = tokens[1:]
-
-    "return {"token": tokens, "stack":stack}
-
 
 endfun
 
