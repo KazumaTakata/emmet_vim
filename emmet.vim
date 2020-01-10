@@ -32,12 +32,12 @@ fun! GetToken(input)
    let regex_rparen = '\v\)'
    let regex_sharp = '\v\#'
    let regex_dot = '\v\.'
-   
- 
-  
+   let regex_lbra = '\v\{'
+   let regex_rbra = '\v\}'
 
 
-   let regex = '\v[a-zA-Z_]+|\>|\+|\^|\*|\d+|\(|\)|\#|\.' 
+
+   let regex = '\v[a-zA-Z_]+|\>|\+|\^|\*|\d+|\(|\)|\#|\.|\{|\}' 
    let result =  matchstrpos(a:input, regex) 
    if matchstrpos(result[0], regex_tag)[1] != -1 
        return {"type" :"tag","value" :result[0],"start": result[1], "end": result[2]}
@@ -59,6 +59,12 @@ fun! GetToken(input)
        return {"type" :"sharp","value" :result[0],"start": result[1], "end": result[2]}
    elseif  matchstrpos(result[0], regex_dot)[1] != -1 
        return {"type" :"dot","value" :result[0],"start": result[1], "end": result[2]}
+   elseif  matchstrpos(result[0], regex_lbra)[1] != -1 
+       return {"type" :"lbra","value" :result[0],"start": result[1], "end": result[2]}
+   elseif  matchstrpos(result[0], regex_rbra)[1] != -1 
+       return {"type" :"rbra","value" :result[0],"start": result[1], "end": result[2]}
+
+
 
    endif  
     
@@ -137,6 +143,13 @@ fun! Parser(tokens)
             let tokens = tokens[1:]
             break
 
+        elseif tokens[0].type == "lbra"
+            let text_node = { "type": "text", "value": tokens[1].value}            
+            call add(stack[-1].children, text_node) 
+            call assert_equal(tokens[2].type ,"rbra")
+
+            let tokens = tokens[3:]
+
         endif
     endwhile
     
@@ -176,6 +189,16 @@ fun! ParseTag(tokens, stack)
             call remove(a:tokens, 0)
 
 
+        elseif a:tokens[1].type == "lbra"
+            let text_node = { "type": "text", "value": a:tokens[2].value}            
+
+            call add(cur_token.children, text_node) 
+            
+            call assert_equal(a:tokens[3].type ,"rbra")
+            call remove(a:tokens, 0)
+            call remove(a:tokens, 0)
+            call remove(a:tokens, 0)
+
         endif
 
 
@@ -199,6 +222,11 @@ fun! GenTag(tree, depth)
     let html = "" 
     let tag_type = a:tree.value
 
+
+
+    if a:tree.type == "text" 
+        let html = a:tree.value . "\n"
+    else
 
     let open_tag = "<" . tag_type . " "     
 
@@ -255,6 +283,9 @@ fun! GenTag(tree, depth)
         endwhile
 
     endif
+    
+    endif
+
 
     return html 
 
