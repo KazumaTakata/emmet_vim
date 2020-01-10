@@ -198,9 +198,37 @@ endfun
 fun! GenTag(tree, depth)
     let html = "" 
     let tag_type = a:tree.value
+
+
+    let open_tag = "<" . tag_type . " "     
+
+    if has_key(a:tree, "class") && len(a:tree.id) > 0
+        let id_attr = "id=\""
+        
+        for id in  a:tree.id 
+            let id_attr = id_attr . id 
+        endfor
+         
+        let id_attr = id_attr .  "\""
+        let open_tag = open_tag . id_attr 
+        
+    endif
+     
+
+    if has_key(a:tree, "class")  && len(a:tree.class) > 0
+        let class_attr = "class=\""
+        
+        for class in  a:tree.class 
+            let class_attr = class_attr . class . " "
+        endfor
+         
+        let class_attr = class_attr .  "\""
+        let open_tag = open_tag . " " . class_attr 
+    endif
     
-    let open_tag = "<" . tag_type . ">"
-    
+    let open_tag = open_tag . ">"
+
+
     let child_html = ""
     for child in a:tree.children 
        let child_html =  child_html . GenTag(child, a:depth + 4) 
