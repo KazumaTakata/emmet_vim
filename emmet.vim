@@ -22,7 +22,7 @@ fun! GetTokens(input)
 endfun
 
 fun! GetToken(input)
-   let regex_tag = '\v[a-zA-Z_ 0-9]+'
+   let regex_tag = '\v[a-zA-Z_][a-zA-Z_ 0-9]*'
    let regex_lt = '\v\>'
    let regex_plus = '\v\+'
    let regex_up = '\v\^'
@@ -121,9 +121,9 @@ fun! Parser(tokens)
             endwhile 
             
             let index = -counter - 2 
-            if len(stack) < abs(inde) 
+            if len(stack) < abs(index) 
                 let stack = stack[:index]
-            elseif
+            else
                 let stack = stack[:0]
             endif 
             
@@ -133,10 +133,20 @@ fun! Parser(tokens)
 
         elseif tokens[0].type == "lparen"
             let tree_and_tokens = Parser(tokens[1:])
+
             let node = { "type" : "tree", "value": tree_and_tokens.tree, "children":[] } 
-            call add(tree[depth], node)
             let tokens = tree_and_tokens.tokens
             
+            if tokens[0].type == "mul"
+                if tokens[1].type == "num"
+                     let node.count = tokens[1].value
+                     let tokens = tokens[2:]
+                endif
+            endif
+           
+
+
+            call add(tree[depth], node)
             call add(stack[-1].children, node) 
 
             call add(stack, node)
@@ -229,6 +239,12 @@ fun! Compile(input)
    let tree = Parser(tokens)
    return GenHTML(tree.tree.children) 
 endfun
+ 
+fun! GenTree(input)
+   let tokens = GetTokens(a:input) 
+   let tree = Parser(tokens)
+   return tree.tree.children
+endfun
     
 fun! GenTag(tree, depth)
     let html = "" 
@@ -250,6 +266,19 @@ fun! GenTag(tree, depth)
         for child  in a:tree.value.children
              let html =  html . GenTag(child, a:depth) 
         endfor
+
+     
+        if has_key(a:tree, "count")
+                
+            let index = 1 
+            while a:tree.count > index
+                let html = html . html
+                let index = index + 1
+            endwhile
+
+        endif
+            
+            
     else
 
     let open_tag = "<" . tag_type      
@@ -283,13 +312,7 @@ fun! GenTag(tree, depth)
 
     let child_html = ""
     for child in a:tree.children 
-       if child.type == "tree"
-           for grand_child  in child.value.children
-                let child_html =  child_html . GenTag(grand_child, a:depth + 4) 
-           endfor
-       else
-           let child_html =  child_html . GenTag(child, a:depth + 4) 
-       endif
+        let child_html =  child_html . GenTag(child, a:depth + 4) 
     endfor
  
     let close_tag = "</" . tag_type . ">"
