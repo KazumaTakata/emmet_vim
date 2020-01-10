@@ -71,57 +71,63 @@ fun! Parser(tokens)
     let tokens = a:tokens
 
     let tree = [[]] 
+
+    let stack = [] 
     
     let depth = 0
 
     let cur_node = tree 
-    
+   
+    let root = {"children": []} 
+
+    call add(stack, root)
 
     while len(tokens) > 0
        if tokens[0].type == "tag"
-            let cur_token = tokens[0] 
-            let cur_token.id = []
-            let cur_token.class = []
+            call ParseTag(tokens, stack)
+"            let cur_token = tokens[0] 
+            "let cur_token.id = []
+            "let cur_token.class = []
+            "let cur_token.children = []
 
-            if len(tokens) > 1
-                if tokens[1].type == "mul"
-                    if tokens[2].type == "num"
-                        let tokens[0].count = tokens[2].value
-                        let tokens = tokens[2:]
-                    endif
-                elseif tokens[1].type == "sharp"
-                    call add(tokens[0].class,tokens[2].value)
-                    let tokens = tokens[2:]
+            "if len(tokens) > 1
+                "if tokens[1].type == "mul"
+                    "if tokens[2].type == "num"
+                        "let tokens[0].count = tokens[2].value
+                        "let tokens = tokens[2:]
+                    "endif
+                "elseif tokens[1].type == "sharp"
+                    "call add(tokens[0].class,tokens[2].value)
+                    "let tokens = tokens[2:]
                 
-                elseif tokens[1].type == "dot"
-                    call add(tokens[0].id,tokens[2].value)
-                    let tokens = tokens[2:]
-                endif
+                "elseif tokens[1].type == "dot"
+                    "call add(tokens[0].id,tokens[2].value)
+                    "let tokens = tokens[2:]
+                "endif
  
 
-            endif
+            "endif
+            
+            "call add(stack[-1].children, cur_token) 
 
-            call add(tree[depth], cur_token )
+            "call add(stack, cur_token )
 
-            let tokens = tokens[1:]
+            "let tokens = tokens[1:]
 
 
         elseif tokens[0].type == "child"
-            let depth = depth + 1
-            if len(tree) - 1 < depth
-               call add(tree, []) 
-            endif
-
-            
+                      
             let tokens = tokens[1:]
-
-
+            call ParseTag(tokens, stack)
+"
 
         elseif tokens[0].type == "plus"
 
+            let stack = stack[:-2] 
             let tokens = tokens[1:]
-
-
+            call ParseTag(tokens, stack)
+"
+        
         elseif tokens[0].type == "up"
             let depth = depth - 1 
             let tokens = tokens[1:]
@@ -140,9 +146,63 @@ fun! Parser(tokens)
     endwhile
     
 
-    return { "tree": tree, "tokens": tokens } 
+    return { "tree": root, "tokens": tokens } 
 
 
 endfun
+
+fun! ParseTag(tokens, stack)
+    call assert_equal(a:tokens[0].type, "tag")
+    let cur_token = a:tokens[0] 
+    let cur_token.id = []
+    let cur_token.class = []
+    let cur_token.children = []
+
+    if len(a:tokens) > 1
+        if a:tokens[1].type == "mul"
+            if a:tokens[2].type == "num"
+                let a:tokens[0].count = tokens[2].value
+                "let a:tokens = a:tokens[2:]
+                call remove(a:tokens, 0)
+                call remove(a:tokens, 0)
+
+            endif
+        elseif a:tokens[1].type == "sharp"
+            call add(a:tokens[0].class,a:tokens[2].value)
+            "let tokens = a:tokens[2:]
+            call remove(a:tokens, 0)
+            call remove(a:tokens, 0)
+
+       
+        elseif a:tokens[1].type == "dot"
+            call add(a:tokens[0].id,a:tokens[2].value)
+            "let tokens = tokens[2:]
+            call remove(a:tokens, 0)
+            call remove(a:tokens, 0)
+
+
+        endif
+
+
+    endif
+    
+    call add(a:stack[-1].children, cur_token) 
+
+    call add(a:stack, cur_token )
+    call remove(a:tokens, 0)
+    "let tokens = tokens[1:]
+
+    "return {"token": tokens, "stack":stack}
+
+
+endfun
+
+fun! GenHTML(tree)
+    
+    
+
+endfun
+
+
 
 
